@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Exercices de Timothée</title>
+<style>
+:root{
+  --bg:#14161B; --raised:#1D2027; --ink:#EDEAE3; --muted:#8B90A0;
+  --brand:#FFB84D; --good:#9AE66E; --bad:#FF7A6B; --nl:#FF9F5A; --en:#5AC8FA;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+#app{max-width:460px;margin:0 auto;padding:24px 16px 48px}
+button{font-family:inherit;color:inherit}
+.center{text-align:center}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.xs{font-size:11px}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.row{display:flex;align-items:center}
+.between{justify-content:space-between}
+.gap{gap:8px}
+.mb1{margin-bottom:6px}.mb2{margin-bottom:12px}.mb3{margin-bottom:20px}
+.mt1{margin-top:6px}.mt2{margin-top:12px}
+.list>*+*{margin-top:8px}
+.card{background:var(--raised);border-radius:16px;padding:16px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:none;cursor:pointer;
+  padding:15px;border-radius:16px;font-size:16px;font-weight:700;background:var(--brand);color:var(--bg)}
+.btn:active{transform:scale(.99)}
+.btn-ghost{background:transparent;border:1px solid rgba(255,255,255,.16);color:var(--ink);font-weight:600;padding:12px;font-size:15px}
+.btn-sub{background:var(--raised);color:var(--ink);font-weight:600;padding:12px;font-size:15px}
+.badge{display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:20px;color:var(--bg)}
+.set{width:100%;text-align:left;border:1px solid;border-radius:16px;padding:16px;background:var(--raised);cursor:pointer;color:var(--ink);
+  display:flex;align-items:center;justify-content:space-between}
+.title{font-weight:800;font-size:20px;color:var(--ink)}
+.input{width:100%;padding:15px;border-radius:16px;font-size:18px;background:var(--raised);color:var(--ink);
+  border:2px solid rgba(255,255,255,.13);outline:none}
+.input:focus{border-color:var(--brand)}
+.prompt{background:var(--raised);border-radius:22px;padding:26px;text-align:center;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:24px;font-weight:700}
+.seg{height:6px;flex:1;border-radius:3px}
+.fb{border-radius:16px;padding:14px;display:flex;gap:12px;align-items:flex-start;border:1px solid}
+.mood{display:flex;flex-direction:column;align-items:center;border:none;cursor:pointer;border-radius:16px;
+  padding:8px 6px;min-width:52px;background:var(--raised)}
+.mood.sel{background:var(--brand);transform:scale(1.06)}
+.mood .em{font-size:26px;line-height:1.1}
+.mood .lb{font-size:11px;margin-top:2px;color:var(--muted)}
+.mood.sel .lb{color:var(--bg);font-weight:700}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.stat{background:var(--raised);border-radius:16px;padding:16px;text-align:center}
+.stat .big{font-size:24px;font-weight:800}
+.erow{background:var(--raised);border-radius:12px;padding:12px;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.pill{font-size:11px;font-family:ui-monospace,monospace;padding:2px 8px;border-radius:20px;
+  background:rgba(255,122,107,.15);color:var(--bad);flex:none}
+.ta{width:100%;height:150px;border-radius:12px;padding:12px;font-family:ui-monospace,monospace;font-size:12px;
+  background:var(--raised);color:var(--ink);border:1px solid rgba(255,255,255,.13);resize:vertical}
+.iconbtn{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;font-size:20px;line-height:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+
+/* ============================================================
+   CONFIGURATION SUPABASE  (synchro multi-appareils)
+   Pour activer la synchro entre appareils, colle ci-dessous :
+     - l'URL du projet Supabase  (Settings > API > Project URL)
+     - la cle "anon public"      (Settings > API > Project API keys > anon public)
+   Laisse les deux vides pour rester en mode local (sur cet appareil).
+   NE METS JAMAIS la cle "service_role" ici.
+   ============================================================ */
+var SUPABASE_URL = "https://gplhqxqhcpussgdepess.supabase.co";  /* URL de base du projet (le code ajoute /rest/v1/ tout seul) */
+var SUPABASE_KEY = "sb_publishable_m8uXULoHw4SOHqIjP27iLA_wcjxeLdX";  /* cle "publishable" (client) : OK dans le navigateur */
+var CLOUD = !!(SUPABASE_URL && SUPABASE_KEY);
+var KEY = "timothee_sessions";
+
+/* ---------- Donnees (cache + acces cloud OU local) ---------- */
+var SESSIONS = null; /* cache chronologique (plus ancien -> plus recent) ; null = pas encore charge */
+
+function loadLocal(){ try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch(e){ return []; } }
+function cloudHeaders(){ return { "apikey":SUPABASE_KEY, "Authorization":"Bearer "+SUPABASE_KEY, "Content-Type":"application/json" }; }
+function rowFromObj(o){ return { set_id:o.setId, lang:o.lang, theme:o.theme, code:o.code, total:o.total, score:o.score, mood:o.mood, missed:o.missed }; }
+function objFromRow(x){ return { setId:x.set_id, lang:x.lang, theme:x.theme, code:x.code, date:x.created_at, total:x.total, score:x.score, missed:x.missed||[], mood:x.mood }; }
+
+function refreshSessions(cb){
+  if(CLOUD){
+    fetch(SUPABASE_URL + "/rest/v1/sessions?select=*&order=created_at.asc", { headers:cloudHeaders() })
+      .then(function(r){ return r.json(); })
+      .then(function(rows){ SESSIONS = (rows||[]).map(objFromRow); if(cb) cb(); })
+      .catch(function(){ SESSIONS = []; if(cb) cb("err"); });
+  } else {
+    SESSIONS = loadLocal();
+    if(cb) cb();
+  }
+}
+function saveSessionData(obj, done){
+  if(CLOUD){
+    var h = cloudHeaders(); h["Prefer"] = "return=minimal";
+    fetch(SUPABASE_URL + "/rest/v1/sessions", { method:"POST", headers:h, body:JSON.stringify(rowFromObj(obj)) })
+      .then(function(){ if(done) done(); })
+      .catch(function(){ if(done) done("err"); });
+  } else {
+    var a = loadLocal(); a.push(obj);
+    try { localStorage.setItem(KEY, JSON.stringify(a)); } catch(e){}
+    if(done) done();
+  }
+}
+
+var SETS = [
+  {
+    id:"nl-chiffres", lang:"NL", theme:"Chiffres", code:"NL-S1 \u00B7 Chiffres",
+    instruction:"\u00C9cris le nombre en n\u00E9erlandais.",
+    example:{prompt:"35", answer:"vijfendertig"},
+    items:[
+      {prompt:"26", accept:["zesentwintig"], rule:"Unit\u00E9 (zes) + en + dizaine (twintig)."},
+      {prompt:"23", accept:["drie\u00EBntwintig"], rule:"Unit\u00E9 = drie \u2192 le \u00AB en \u00BB devient \u00AB \u00EBn \u00BB."},
+      {prompt:"47", accept:["zevenenveertig"], rule:"Unit\u00E9 (zeven) + en + dizaine (veertig)."},
+      {prompt:"82", accept:["twee\u00EBntachtig"], rule:"Unit\u00E9 = twee \u2192 \u00AB \u00EBn \u00BB."},
+      {prompt:"91", accept:["eenennegentig"], rule:"\u00AB \u00E9\u00E9n \u00BB perd son accent en mot compos\u00E9 \u2192 \u00AB een \u00BB."}
+    ]
+  },
+  {
+    id:"nl-determinants", lang:"NL", theme:"De / Het / Een", code:"NL-S1 \u00B7 Articles de-het",
+    instruction:"Compl\u00E8te avec DE, HET ou EEN.",
+    example:{prompt:"___ huis (la maison)", answer:"het huis"},
+    items:[
+      {prompt:"___ gezin  (la famille)", accept:["het"], rule:"Mot neutre \u2192 HET."},
+      {prompt:"___ leerling  (l'\u00E9l\u00E8ve)", accept:["de"], rule:"Pas neutre \u2192 DE."},
+      {prompt:"___ leraar  (le professeur)", accept:["de"], rule:"Pas neutre \u2192 DE."},
+      {prompt:"___ weer  (la m\u00E9t\u00E9o)", accept:["het"], rule:"Mot neutre \u2192 HET."},
+      {prompt:"___ boek  (le livre)", accept:["het"], rule:"Mot neutre \u2192 HET."},
+      {prompt:"het boek  \u2192  (un livre)", accept:["een boek"], rule:"EEN ne change jamais, quel que soit le genre."},
+      {prompt:"de leraar  \u2192  (un professeur)", accept:["een leraar"], rule:"EEN ne change jamais."},
+      {prompt:"het gezin  \u2192  (une famille)", accept:["een gezin"], rule:"EEN ne change jamais."}
+    ]
+  },
+  {
+    id:"nl-heure", lang:"NL", theme:"L'heure", code:"NL-S1 \u00B7 Heure",
+    instruction:"Traduis en n\u00E9erlandais (phrase compl\u00E8te).",
+    example:{prompt:"Il est 7h00.", answer:"Het is zeven uur."},
+    items:[
+      {prompt:"Il est 8h00.", accept:["het is acht uur"], rule:"Heure juste \u2192 + uur."},
+      {prompt:"Il est 9h30.", accept:["het is halftien"], rule:"Demie \u2192 half + heure suivante, en un mot."},
+      {prompt:"Il est 10h15.", accept:["het is kwart over tien"], rule:"Quart apr\u00E8s \u2192 kwart over."},
+      {prompt:"Il est 13h45.", accept:["het is kwart voor twee"], rule:"Quart avant \u2192 kwart voor + heure suivante."},
+      {prompt:"Il est 11h10.", accept:["het is tien over elf"], rule:"Minutes apr\u00E8s \u2192 minutes + over."}
+    ]
+  },
+  {
+    id:"en-dates", lang:"EN", theme:"Dates", code:"EN-S1 \u00B7 Dates",
+    instruction:"Traduis la date en anglais.",
+    example:{prompt:"Le 5 mars", answer:"March 5th"},
+    items:[
+      {prompt:"Le 3 juillet", accept:["july 3rd","the 3rd of july"], rule:"third, pas \u00AB threeth \u00BB."},
+      {prompt:"Le 21 d\u00E9cembre", accept:["december 21st","the 21st of december"], rule:"21st garde \u00AB first \u00BB dans twenty-first."},
+      {prompt:"Le 1er janvier", accept:["january 1st","the 1st of january"], rule:"\u00AB first \u00BB \u2014 \u00E0 conna\u00EEtre par c\u0153ur."},
+      {prompt:"Le 12 mai", accept:["may 12th","the 12th of may"], rule:"\u00AB twelfth \u00BB \u2014 irr\u00E9gulier."},
+      {prompt:"Le 30 septembre", accept:["september 30th","the 30th of september"], rule:"\u00AB thirtieth \u00BB \u2014 r\u00E9gulier (+th)."}
+    ]
+  },
+  {
+    id:"en-heure", lang:"EN", theme:"L'heure", code:"EN-S1 \u00B7 Heure",
+    instruction:"Traduis en anglais (phrase compl\u00E8te).",
+    example:{prompt:"Il est 7h00.", answer:"It's seven o'clock."},
+    items:[
+      {prompt:"Il est 8h00.", accept:["it's eight o'clock","it is eight o'clock"], rule:"Heure juste \u2192 + o'clock."},
+      {prompt:"Il est 9h30.", accept:["it's half past nine","it is half past nine"], rule:"Demie \u2192 half past + heure."},
+      {prompt:"Il est 10h15.", accept:["it's a quarter past ten","it is a quarter past ten"], rule:"Quart apr\u00E8s \u2192 a quarter past."},
+      {prompt:"Il est 13h45.", accept:["it's a quarter to two","it is a quarter to two"], rule:"Quart avant \u2192 a quarter to + heure suivante."},
+      {prompt:"Il est 11h10.", accept:["it's ten past eleven","it is ten past eleven"], rule:"Minutes apr\u00E8s \u2192 minutes + past."}
+    ]
+  }
+];
+
+var MOODS = [
+  {v:1, em:"\uD83D\uDE23", lb:"Dur"},
+  {v:2, em:"\uD83D\uDE15", lb:"Bof"},
+  {v:3, em:"\uD83D\uDE42", lb:"\u00C7a va"},
+  {v:4, em:"\uD83D\uDE03", lb:"Bien"},
+  {v:5, em:"\uD83E\uDD29", lb:"Top"}
+];
+
+var st = { view:"menu", set:null, i:0, input:"", fb:null, results:[], streak:0, best:0, mood:null, saved:false, exportOpen:false, exportText:"" };
+
+function norm(s){
+  return String(s).toLowerCase().trim()
+    .replace(/[\u2018\u2019]/g,"'")
+    .replace(/[.,!?]+$/g,"")
+    .replace(/\s+/g," ")
+    .replace(/\u00EB/g,"e")
+    .replace(/\u00EF/g,"i");
+}
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function langColor(l){ return l==="NL" ? "var(--nl)" : "var(--en)"; }
+function badge(l){ return '<span class="badge" style="background:'+langColor(l)+'">'+l+'</span>'; }
+
+function start(id){
+  var s=null; for(var k=0;k<SETS.length;k++){ if(SETS[k].id===id) s=SETS[k]; }
+  if(!s) return;
+  st.set=s; st.i=0; st.input=""; st.fb=null; st.results=[]; st.streak=0; st.best=0;
+  st.mood=null; st.saved=false; st.exportOpen=false; st.view="intro"; render();
+}
+function submit(){
+  if(st.fb) return;
+  var v=st.input.trim(); if(!v) return;
+  var it=st.set.items[st.i];
+  var ok=false; for(var k=0;k<it.accept.length;k++){ if(norm(it.accept[k])===norm(v)) ok=true; }
+  st.fb={ok:ok, it:it, given:v};
+  st.results.push({prompt:it.prompt, correct:ok, correctAnswer:it.accept[0], rule:it.rule, given:v});
+  if(ok){ st.streak++; if(st.streak>st.best) st.best=st.streak; } else { st.streak=0; }
+  render();
+}
+function next(){
+  if(st.i+1 < st.set.items.length){ st.i++; st.input=""; st.fb=null; }
+  else { st.view="summary"; }
+  render();
+}
+function nav(then){
+  st.view=then;
+  if(then==="dashboard"){ render(); if(SESSIONS===null){ refreshSessions(function(){ render(); }); } else { render(); } }
+  else { render(); }
+}
+function goDashboard(){ st.exportOpen=false; nav("dashboard"); }
+function save(then){
+  if(st.saved || !st.set){ nav(then); return; }
+  st.saved=true;
+  var score=0; for(var k=0;k<st.results.length;k++){ if(st.results[k].correct) score++; }
+  var missed=[]; for(var j=0;j<st.results.length;j++){ if(!st.results[j].correct) missed.push(st.results[j]); }
+  var obj = { setId:st.set.id, lang:st.set.lang, theme:st.set.theme, code:st.set.code,
+    date:new Date().toISOString(), total:st.set.items.length, score:score, missed:missed, mood:st.mood };
+  saveSessionData(obj, function(){ SESSIONS=null; nav(then); });
+}
+function computeDash(){
+  var sessions=(SESSIONS||[]).slice().reverse();
+  var tally={};
+  for(var i=0;i<sessions.length;i++){
+    var m=sessions[i].missed||[];
+    for(var j=0;j<m.length;j++){
+      var key=sessions[i].setId+"::"+m[j].prompt;
+      if(!tally[key]) tally[key]={prompt:m[j].prompt, correctAnswer:m[j].correctAnswer, rule:m[j].rule, count:0};
+      tally[key].count++;
+    }
+  }
+  var top=[]; for(var k in tally){ if(tally.hasOwnProperty(k)) top.push(tally[k]); }
+  top.sort(function(a,b){ return b.count-a.count; });
+  return {sessions:sessions, top:top};
+}
+function buildExport(){
+  var d=computeDash(), sessions=d.sessions, top=d.top;
+  var ts=0,ti=0; for(var i=0;i<sessions.length;i++){ ts+=sessions[i].score; ti+=sessions[i].total; }
+  var pct=Math.round(100*ts/Math.max(1,ti));
+  var rated=[]; for(var r=0;r<sessions.length;r++){ if(sessions[r].mood) rated.push(sessions[r]); }
+  var avg="\u2014"; if(rated.length){ var sum=0; for(var q=0;q<rated.length;q++) sum+=rated[q].mood; avg=(sum/rated.length).toFixed(1); }
+  var L=[];
+  L.push("BILAN \u2014 export du "+new Date().toLocaleDateString("fr-BE"));
+  L.push("S\u00E9ances: "+sessions.length+" | R\u00E9ussite: "+pct+"% | Humeur moyenne: "+avg+"/5");
+  L.push("");
+  L.push("S\u00E9ances (r\u00E9cent \u2192 ancien) :");
+  for(var s=0;s<sessions.length;s++){
+    var ss=sessions[s];
+    var dt=new Date(ss.date).toLocaleDateString("fr-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+    L.push("- "+dt+" \u00B7 "+(ss.code||ss.theme)+" \u00B7 "+ss.score+"/"+ss.total+" \u00B7 "+(ss.mood?("humeur "+ss.mood+"/5"):"humeur -"));
+  }
+  L.push("");
+  if(top.length){ L.push("Erreurs r\u00E9currentes :"); for(var t=0;t<top.length;t++){ L.push("- "+top[t].prompt+" \u2192 "+top[t].correctAnswer+" (\u00D7"+top[t].count+")"); } }
+  else { L.push("Erreurs r\u00E9currentes : aucune pour l'instant."); }
+  var txt=L.join("\n");
+  try { if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt); } catch(e){}
+  return txt;
+}
+function backup(){
+  var data = JSON.stringify(SESSIONS || []);
+  try {
+    var blob = new Blob([data], {type:"application/json"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "timothee-sauvegarde-" + new Date().toISOString().slice(0,10) + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  } catch(e){ alert("Sauvegarde impossible sur cet appareil."); }
+}
+
+function viewIntro(){
+  var set=st.set, ex=set.example;
+  var exCard = ex ? '<div class="card mb3" style="border:1px solid '+langColor(set.lang)+'55"><div class="xs" style="font-weight:800;letter-spacing:1px;text-transform:uppercase;color:'+langColor(set.lang)+';margin-bottom:6px">Exemple</div><div class="mono" style="font-size:16px">'+esc(ex.prompt)+' <span class="muted">\u2192</span> <span style="color:var(--good)">'+esc(ex.answer)+'</span></div></div>' : '';
+  return '<div class="center mb3">'+badge(set.lang)+' <span class="mono xs" style="color:'+langColor(set.lang)+'">'+esc(set.code)+'</span>'
+    +'<div class="title" style="font-size:22px;margin-top:8px">'+esc(set.theme)+'</div></div>'
+    +'<div class="card mb3"><div class="small" style="font-weight:700;margin-bottom:4px">Ce que tu dois faire</div><div class="small muted">'+esc(set.instruction)+'</div></div>'
+    + exCard
+    +'<button class="btn" data-act="go">C\'est parti ! \u203A</button>';
+}
+
+function viewMenu(){
+  var cards="";
+  for(var i=0;i<SETS.length;i++){
+    var s=SETS[i];
+    cards+='<button class="set" data-act="start" data-val="'+s.id+'" style="border-color:'+langColor(s.lang)+'44;margin-bottom:12px">'
+      +'<span>'
+      +'<span class="row mb1">'+badge(s.lang)+'</span>'
+      +'<span class="title" style="display:block">'+esc(s.theme)+'</span>'
+      +'<span class="mono xs" style="display:block;margin-top:2px;color:'+langColor(s.lang)+'">'+esc(s.code)+'</span>'
+      +'<span class="xs muted" style="display:block;margin-top:2px">'+s.items.length+' questions</span>'
+      +'</span>'
+      +'<span style="color:var(--muted);font-size:22px">\u203A</span>'
+      +'</button>';
+  }
+  var sync = CLOUD
+    ? '<div class="xs center mb3" style="color:var(--good)">\u2601 Synchronis\u00E9 \u2014 visible sur tous tes appareils</div>'
+    : '<div class="xs center mb3 muted">Sur cet appareil</div>';
+  return '<div class="center mb1">'
+    +'<div class="xs muted" style="letter-spacing:2px;text-transform:uppercase;margin-bottom:2px">Semaine 1</div>'
+    +'<div class="title" style="font-size:22px">Tes exercices</div></div>'
+    + sync
+    + cards
+    + '<button class="btn btn-ghost" data-act="dashboard" style="margin-top:8px">\uD83D\uDCCA Tableau de bord</button>';
+}
+
+function viewExercise(){
+  var set=st.set, it=set.items[st.i];
+  var segs="";
+  for(var k=0;k<set.items.length;k++){
+    var col = k<st.i ? "var(--brand)" : (k===st.i ? "rgba(255,184,77,.4)" : "rgba(255,255,255,.12)");
+    segs+='<span class="seg" style="background:'+col+'"></span>';
+  }
+  var bottom;
+  if(!st.fb){
+    bottom='<input id="ans" class="input mb2" placeholder="\u00C9cris ta r\u00E9ponse ici" autocomplete="off" autocapitalize="off" spellcheck="false">'
+      +'<button class="btn" data-act="submit">Valider</button>';
+  } else {
+    var ok=st.fb.ok, col2=ok?"var(--good)":"var(--bad)", bgc=ok?"rgba(154,230,110,.13)":"rgba(255,122,107,.13)";
+    bottom='<div class="fb mb2" style="background:'+bgc+';border-color:'+col2+'">'
+      +'<span style="color:'+col2+';font-size:20px;font-weight:800">'+(ok?"\u2713":"\u2715")+'</span>'
+      +'<span>'
+      +'<span style="display:block;font-weight:800;color:'+col2+'">'+(ok?"Correct":"Pas tout \u00E0 fait")+'</span>'
+      +(ok?"":'<span class="small" style="display:block;margin-top:2px">Ta r\u00E9ponse : <span class="mono" style="color:var(--bad)">'+esc(st.fb.given)+'</span></span>')
+      +(ok?"":'<span class="small" style="display:block;margin-top:2px">Bonne r\u00E9ponse : <span class="mono" style="color:var(--good)">'+esc(st.fb.it.accept[0])+'</span></span>')
+      +'<span class="small muted" style="display:block;margin-top:2px">'+esc(st.fb.it.rule)+'</span>'
+      +'</span></div>'
+      +'<button class="btn" data-act="next">'+(st.i+1<set.items.length?"Suivant \u203A":"Terminer \u203A")+'</button>';
+  }
+  return '<div class="row between mb2">'
+    +'<button class="iconbtn" data-act="menu" aria-label="Menu">\u2302</button>'
+    +'<div class="row" style="flex:1;margin:0 14px;gap:4px">'+segs+'</div>'
+    +'<div class="row gap" style="color:'+(st.streak>0?"var(--brand)":"var(--muted)")+'"><span>\uD83D\uDD25</span><span class="mono" style="font-weight:700">'+st.streak+'</span></div>'
+    +'</div>'
+    +'<div class="center mb1">'+badge(set.lang)+' <span class="mono xs" style="color:'+langColor(set.lang)+'">'+esc(set.code)+'</span> <span class="xs muted">'+(st.i+1)+'/'+set.items.length+'</span></div>'
+    +'<div class="xs muted center mb2">'+esc(set.instruction)+'</div>'
+    +'<div class="prompt mb2">'+esc(it.prompt)+'</div>'
+    + bottom;
+}
+
+function viewSummary(){
+  var score=0; for(var k=0;k<st.results.length;k++){ if(st.results[k].correct) score++; }
+  var tot=st.set.items.length;
+  var missed=[]; for(var j=0;j<st.results.length;j++){ if(!st.results[j].correct) missed.push(st.results[j]); }
+  var missedHtml="";
+  if(missed.length){
+    var rows="";
+    for(var m=0;m<missed.length;m++){
+      rows+='<div class="card" style="padding:12px"><div class="small" style="font-weight:600">'+esc(missed[m].prompt)+'</div><div class="small mt1">Ta r\u00E9ponse : <span class="mono" style="color:var(--bad)">'+esc(missed[m].given||"")+'</span></div><div class="small">Bonne r\u00E9ponse : <span class="mono" style="color:var(--good)">'+esc(missed[m].correctAnswer)+'</span></div><div class="xs muted mt1">'+esc(missed[m].rule)+'</div></div>';
+    }
+    missedHtml='<div class="mb2"><div class="small" style="font-weight:700;margin-bottom:8px">\u00C0 revoir</div><div class="list">'+rows+'</div></div>';
+  }
+  var moods="";
+  for(var i=0;i<MOODS.length;i++){
+    var mm=MOODS[i];
+    moods+='<button class="mood '+(st.mood===mm.v?"sel":"")+'" data-act="mood" data-val="'+mm.v+'"><span class="em">'+mm.em+'</span><span class="lb">'+mm.lb+'</span></button>';
+  }
+  return '<div class="center mb3">'
+    +'<div style="font-size:30px">\u2728</div>'
+    +'<div class="small muted">S\u00E9ance termin\u00E9e</div>'
+    +'<div class="mono" style="font-size:40px;font-weight:800;margin-top:2px">'+score+'<span class="muted">/'+tot+'</span></div>'
+    +'</div>'
+    + missedHtml
+    +'<div class="mb3"><div class="small center" style="font-weight:700;margin-bottom:2px">Comment s\'est pass\u00E9e ta s\u00E9ance ?</div>'
+    +'<div class="xs muted center mb2">Pas \u00AB t\'as \u00E9t\u00E9 bon \u00BB \u2014 juste comment tu l\'as v\u00E9cue.</div>'
+    +'<div class="row" style="justify-content:center;gap:8px">'+moods+'</div></div>'
+    +'<div class="row gap">'
+    +'<button class="btn btn-sub" style="flex:1" data-act="save" data-val="menu">Retour</button>'
+    +'<button class="btn" style="flex:1" data-act="save" data-val="dashboard">\uD83D\uDCCA Tableau de bord</button>'
+    +'</div>';
+}
+
+function viewDashboard(){
+  var header='<div class="row between mb3">'
+    +'<button class="iconbtn" data-act="menu" aria-label="Menu">\u2302</button>'
+    +'<div style="font-weight:700">Tableau de bord</div><div style="width:20px"></div></div>';
+  if(SESSIONS===null){ return header+'<div class="center muted" style="padding:40px 0">Chargement\u2026</div>'; }
+  var d=computeDash(), sessions=d.sessions, top=d.top;
+  if(sessions.length===0){
+    return header+'<div class="center muted" style="padding:40px 0">Pas encore de s\u00E9ance enregistr\u00E9e.<br>Fais ton premier exercice !</div>';
+  }
+  var ts=0,ti=0; for(var i=0;i<sessions.length;i++){ ts+=sessions[i].score; ti+=sessions[i].total; }
+  var pct=Math.round(100*ts/Math.max(1,ti));
+  var rated=[]; for(var r=0;r<sessions.length;r++){ if(sessions[r].mood) rated.push(sessions[r]); }
+  var moodStat;
+  if(rated.length){ var sum=0; for(var q=0;q<rated.length;q++) sum+=rated[q].mood; var avg=sum/rated.length;
+    var idx=Math.min(4,Math.max(0,Math.round(avg)-1));
+    moodStat='<div class="big">'+MOODS[idx].em+'</div><div class="xs muted">humeur '+avg.toFixed(1)+'</div>';
+  } else { moodStat='<div class="big muted">\u2014</div><div class="xs muted">humeur</div>'; }
+  var stats='<div class="grid3 mb3">'
+    +'<div class="stat"><div class="big mono">'+sessions.length+'</div><div class="xs muted">s\u00E9ances</div></div>'
+    +'<div class="stat"><div class="big mono">'+pct+'%</div><div class="xs muted">r\u00E9ussite</div></div>'
+    +'<div class="stat">'+moodStat+'</div></div>';
+  var restoreBtn = CLOUD ? '' : '<label class="btn btn-sub" style="flex:1;cursor:pointer">\u21BA Restaurer<input id="restoreFile" type="file" accept="application/json,.json" style="display:none"></label>';
+  var backupNote = CLOUD
+    ? '<div class="xs muted mt1">\u2601 Donn\u00E9es synchronis\u00E9es sur tous les appareils. \u00AB Sauvegarder \u00BB t\u00E9l\u00E9charge en plus une copie de secours.</div>'
+    : '<div class="xs muted mt1">\u00AB Sauvegarder \u00BB t\u00E9l\u00E9charge un fichier de tes r\u00E9sultats. \u00AB Restaurer \u00BB le recharge, m\u00EAme sur un autre appareil.</div>';
+  var exportBlock='<div class="mb3"><button class="btn btn-ghost" data-act="export">Exporter pour le bilan</button>'
+    +(st.exportOpen?'<div class="mt2"><div class="xs muted mb1">Copi\u00E9 dans le presse-papier. Sinon, s\u00E9lectionne et copie ci-dessous, puis colle-le \u00E0 Claude avec \u00AB Bilan S1 \u00BB.</div><textarea class="ta" id="exp" readonly>'+esc(st.exportText)+'</textarea></div>':'')
+    +'<div class="row gap mt2"><button class="btn btn-sub" style="flex:1" data-act="backup">\uD83D\uDCBE Sauvegarder</button>'+restoreBtn+'</div>'
+    + backupNote
+    +'</div>';
+  var errBlock="";
+  if(top.length){
+    var er="";
+    var lim=Math.min(6, top.length);
+    for(var e=0;e<lim;e++){
+      er+='<div class="erow"><div><div class="small">'+esc(top[e].prompt)+' <span class="muted">\u2192</span> <span class="mono" style="color:var(--brand)">'+esc(top[e].correctAnswer)+'</span></div><div class="xs muted mt1">'+esc(top[e].rule)+'</div></div><span class="pill">\u00D7'+top[e].count+'</span></div>';
+    }
+    errBlock='<div class="mb3"><div class="small" style="font-weight:700;margin-bottom:8px">Erreurs \u00E0 revoir en priorit\u00E9</div><div class="list">'+er+'</div></div>';
+  }
+  var hr="";
+  for(var h=0;h<sessions.length;h++){
+    var ss=sessions[h];
+    var dt=new Date(ss.date).toLocaleDateString("fr-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+    var em=ss.mood?('<span style="font-size:20px">'+MOODS[ss.mood-1].em+'</span>'):"";
+    var sc=ss.score===ss.total?"var(--good)":"var(--ink)";
+    hr+='<div class="erow" style="align-items:center"><div><div class="small" style="font-weight:600">'+badge(ss.lang)+' '+esc(ss.theme)+'</div><div class="xs muted mt1">'+dt+'</div></div><div class="row gap" style="align-items:center">'+em+'<span class="mono" style="font-weight:700;color:'+sc+'">'+ss.score+'/'+ss.total+'</span></div></div>';
+  }
+  var hist='<div><div class="small" style="font-weight:700;margin-bottom:8px">Historique</div><div class="list">'+hr+'</div></div>';
+  return header+stats+exportBlock+errBlock+hist;
+}
+
+function render(){
+  var root=document.getElementById("app");
+  var html="";
+  if(st.view==="menu") html=viewMenu();
+  else if(st.view==="intro") html=viewIntro();
+  else if(st.view==="exercise") html=viewExercise();
+  else if(st.view==="summary") html=viewSummary();
+  else if(st.view==="dashboard") html=viewDashboard();
+  root.innerHTML=html;
+  var ans=document.getElementById("ans");
+  if(ans){
+    ans.value=st.input;
+    ans.oninput=function(e){ st.input=e.target.value; };
+    ans.onkeydown=function(e){ if(e.key==="Enter"){ e.preventDefault(); submit(); } };
+    setTimeout(function(){ ans.focus(); },0);
+  }
+  var exp=document.getElementById("exp");
+  if(exp){ exp.onfocus=function(){ exp.select(); }; }
+  var rf=document.getElementById("restoreFile");
+  if(rf){
+    rf.onchange=function(e){
+      var file = e.target.files && e.target.files[0];
+      if(!file) return;
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        try {
+          var arr = JSON.parse(ev.target.result);
+          if(!(arr instanceof Array)) throw new Error("format");
+          if(window.confirm("Restaurer " + arr.length + " s\u00E9ance(s) ? Cela remplacera les donn\u00E9es actuelles de cet appareil.")){
+            localStorage.setItem(KEY, JSON.stringify(arr));
+            SESSIONS = null; st.exportOpen = false; nav("dashboard");
+          }
+        } catch(err){ alert("Fichier de sauvegarde invalide."); }
+      };
+      reader.readAsText(file);
+    };
+  }
+}
+
+document.getElementById("app").addEventListener("click", function(e){
+  var el=e.target.closest("[data-act]"); if(!el) return;
+  var act=el.getAttribute("data-act"), val=el.getAttribute("data-val");
+  if(act==="start") start(val);
+  else if(act==="go"){ st.view="exercise"; render(); }
+  else if(act==="submit") submit();
+  else if(act==="next") next();
+  else if(act==="menu"){ st.view="menu"; render(); }
+  else if(act==="dashboard"){ goDashboard(); }
+  else if(act==="mood"){ st.mood=parseInt(val,10); render(); }
+  else if(act==="save"){ save(val); }
+  else if(act==="export"){ st.exportText=buildExport(); st.exportOpen=true; render(); }
+  else if(act==="backup"){ backup(); }
+});
+
+render();
+</script>
+</body>
+</html>

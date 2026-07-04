@@ -296,6 +296,38 @@ function viewIntro(){
     +'<button class="btn" data-act="go">C\'est parti ! \u203A</button>';
 }
 
+function viewCockpit(){
+  function lnk(title, url, note){
+    return '<a href="'+url+'" target="_blank" rel="noopener" class="card mb2" style="text-decoration:none;color:inherit;display:block">'
+      +'<div class="small" style="font-weight:700">'+title+'</div>'
+      +'<div class="xs mono" style="color:var(--brand);word-break:break-all">'+url+'</div>'
+      +(note?'<div class="xs muted mt1">'+note+'</div>':'')+'</a>';
+  }
+  function rt(a,b){ return '<div class="mb2"><div class="small" style="font-weight:600">'+a+'</div><div class="xs muted">\u2192 '+b+'</div></div>'; }
+  function wh(name,color,role){ return '<div class="row" style="align-items:flex-start;margin-bottom:6px"><span style="width:9px;height:9px;border-radius:50%;background:'+color+';flex:none;margin-top:5px;margin-right:9px"></span><div class="xs"><b>'+name+'</b> \u2014 '+role+'</div></div>'; }
+  var h='<div class="row between mb3"><button class="iconbtn" data-act="menu" aria-label="Menu">\u2302</button><div style="font-weight:700">Cockpit</div><div style="width:20px"></div></div>';
+  return h
+    +'<div class="xs muted mb3" style="text-align:center">Le point de rendez-vous \u2014 o\u00F9 trouver quoi.</div>'
+    +'<div class="xs" style="font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Liens</div>'
+    +lnk('Code de l\'app (GitHub)','https://github.com/ARTHURS-H/timothee-app','mise \u00E0 jour de l\'app : index.html \u2192 Edit \u2192 Commit')
+    +lnk('Base de donn\u00E9es (Supabase)','https://supabase.com/dashboard','Table Editor > sessions')
+    +'<div class="card mb3"><div class="small" style="font-weight:700">Adresse de cette app</div><div class="xs mono" style="color:var(--en);word-break:break-all">https://arthurs-h.github.io/timothee-app/</div><div class="xs muted mt1">\u00E0 mettre en favori sur les autres appareils</div></div>'
+    +'<div class="xs" style="font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">J\'ai besoin de\u2026 \u2192 je vais voir\u2026</div>'
+    +rt('Pr\u00E9parer / lancer une semaine','Feuille de route parents + \u00AB Semaine X \u00BB \u00E0 Claude')
+    +rt('Faire travailler Timoth\u00E9e aujourd\'hui','La feuille du jour + cette app')
+    +rt('Voir les r\u00E9sultats / l\'\u00E9volution','Cette app \u2192 Tableau de bord + \u00AB Bilan SX \u00BB')
+    +rt('Corriger une r\u00E9daction','\u00AB Corrige : \u00BB + son texte, \u00E0 Claude')
+    +rt('Noter une erreur qui revient','\u00AB Carnet : \u00BB + l\'erreur, \u00E0 Claude')
+    +rt('Comprendre toute la m\u00E9thode','Le Guide du projet')
+    +'<div class="xs" style="font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">Qui fait quoi</div>'
+    +wh('Toi (Hyacinthe)','var(--brand)','le point de rendez-vous : tu pilotes et demandes le mat\u00E9riel \u00E0 Claude.')
+    +wh('Valentine','var(--nl)','supervision quotidienne (en alternance) : lance la s\u00E9ance, corrige le papier.')
+    +wh('Timoth\u00E9e','var(--en)','fait ses s\u00E9ances, s\'auto-corrige dans l\'app.')
+    +wh('Claude','var(--good)','produit Quizlet / Kahoot / exos, corrige, fait les bilans.')
+    +'<div class="card mt2" style="border-left:4px solid var(--brand)"><div class="xs"><b>Commandes Claude :</b> Semaine X \u00B7 Quizlet \u00B7 Kahoot \u00B7 Exos \u00B7 Corrige: \u00B7 Carnet: \u00B7 Bilan SX</div></div>'
+    +'<div class="xs muted mt2" style="text-align:center">Reprise du relais ? Commence par le <b>Guide du projet</b>.</div>';
+}
+
 function viewMenu(){
   var cards="";
   for(var i=0;i<SETS.length;i++){
@@ -318,7 +350,8 @@ function viewMenu(){
     +'<div class="title" style="font-size:22px">Tes exercices</div></div>'
     + sync
     + cards
-    + '<button class="btn btn-ghost" data-act="dashboard" style="margin-top:8px">\uD83D\uDCCA Tableau de bord</button>';
+    + '<button class="btn btn-ghost" data-act="dashboard" style="margin-top:8px">\uD83D\uDCCA Tableau de bord</button>'
+    + '<button class="btn btn-ghost" data-act="cockpit" style="margin-top:8px;font-size:13px;color:var(--muted)">\uD83E\uDDED Cockpit \u00B7 infos & liens</button>';
 }
 
 function viewExercise(){
@@ -446,6 +479,7 @@ function render(){
   else if(st.view==="exercise") html=viewExercise();
   else if(st.view==="summary") html=viewSummary();
   else if(st.view==="dashboard") html=viewDashboard();
+  else if(st.view==="cockpit") html=viewCockpit();
   root.innerHTML=html;
   var ans=document.getElementById("ans");
   if(ans){
@@ -486,6 +520,7 @@ document.getElementById("app").addEventListener("click", function(e){
   else if(act==="next") next();
   else if(act==="menu"){ st.view="menu"; render(); }
   else if(act==="dashboard"){ goDashboard(); }
+  else if(act==="cockpit"){ st.view="cockpit"; render(); }
   else if(act==="mood"){ st.mood=parseInt(val,10); render(); }
   else if(act==="save"){ save(val); }
   else if(act==="export"){ st.exportText=buildExport(); st.exportOpen=true; render(); }
